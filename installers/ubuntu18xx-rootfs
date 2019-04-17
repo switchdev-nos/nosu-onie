@@ -1,0 +1,77 @@
+#!/bin/sh
+#
+#  Copyright (C) 2019 Alexander Petrovskiy <alexpe@mellanox.com>
+#
+#  SPDX-License-Identifier: GPL-2.0
+#
+#  ONIE Installer script for Ubuntu customized image
+#
+
+THDD=/dev/sda
+PNUM=3
+TDEV="$THDD$PNUM"
+TLABEL=NOS
+TDIR=`mktemp -d`
+
+cleanup() {
+    chroot "$TDIR" sh -c 'umount /proc; umount /sys; umount /dev/pts'
+    sleep 1
+    umount $TDIR > /dev/null 2>&1
+    rm -rf $TDIR
+}
+
+fail() {
+    [ "$1" != "" ] && echo $1
+    exit 1
+}
+
+echo "I: Creating partition..."
+sgdisk $THDD -d 3
+partprobe $THDD
+sgdisk -N $PNUM -A $PNUM:set:2 -t $PNUM:8300 $THDD
+partprobe $THDD
+
+echo "I: Creating filesystem..."
+mke2fs -t ext4 -m5 $TDEV
+mke2fs -L $TLABEL $TDEV
+
+mount -t ext4 $TDEV $TDIR
+[ $? -ne 0 ] && fail "Error creating rootfs! Exiting..." 
+
+
+echo "I: Extracting installer rootfs..."
+sed -re '1,/^__DATA__$/d' < "$0" \
+| xz -cd \
+| tar -C "$TDIR" -x
+[ $? -ne 0 ] && fail "Error extracting rootfs! Exiting..." 
+
+cp -a /dev/sd* "$TDIR/dev/"
+
+# GET UBUNTU RELEASE INFORMATION
+echo "I: Checking Ubuntu Version..."
+. "$TDIR/etc/os-release"
+if [ "$VERSION_ID" = "18.04" ] || [ "$VERSION_ID" = "18.10" ]
+then
+        echo "I: Ubuntu $VERSION_ID is detected"
+else
+        fail "Unsupported Ubuntu version: $VERSION_ID"
+fi
+
+# RECONFIGURE OS
+echo "I: Reconfiguring OS..."
+
+# MOUNT VIRTUAL FS
+chroot "$TDIR" sh -c 'mount -t proc /proc /proc; mount -t sysfs /sys /sys; mount -t devpts devpts /dev/pts'
+
+# BOOTLOADER INSTALLATION
+echo "I: Installing GRUB2..."
+chroot "$TDIR" sh -c 'update-initramfs -u; grub-install /dev/sda; update-grub'
+
+#sync
+echo "I: Cleaning up..."
+cleanup
+
+echo "I: Installation finished!"
+exit 0
+
+__DATA__
