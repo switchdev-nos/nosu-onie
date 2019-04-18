@@ -12,6 +12,8 @@ PNUM=3
 TDEV="$THDD$PNUM"
 TLABEL=NOS
 TDIR=`mktemp -d`
+ONIE_CHECK=$(sgdisk /dev/sda -i 2 | grep 'ONIE-BOOT')
+PDEL=$(sgdisk -p /dev/sda | grep -oE '^[[:blank:]]+[[:digit:]]+' | awk '$1>2{print$1}')
 
 cleanup() {
     chroot "$TDIR" sh -c 'umount /proc; umount /sys; umount /dev/pts'
@@ -25,10 +27,25 @@ fail() {
     exit 1
 }
 
+# Stop if ONIE is not installed on local disk
+[ -z "$ONIE_CHECK" ] && fail "E: No ONIE partition found on $THDD. Exiting..."
+
+echo "I: Starting installer..."
+
+if [ ! -z "$PDEL" ]; then 
+    echo "I: Deleting old partitions: "$PDEL
+    for part in $PDEL; do
+        sgdisk $THDD -d $part
+        sleep 1
+    done
+fi
+
 echo "I: Creating partition..."
 sgdisk $THDD -d 3
 partprobe $THDD
-sgdisk -N $PNUM -A $PNUM:set:2 -t $PNUM:8300 $THDD
+sgdisk -N $PNUM -A $PNUM:set:2 -t $PNUM:8300 -c $PNUM:$TLABEL $THDD
+[ $? -ne 0 ] && fail "Error creating partition! Exiting..." 
+
 partprobe $THDD
 
 echo "I: Creating filesystem..."
