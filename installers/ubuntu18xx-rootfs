@@ -7,13 +7,15 @@
 #  ONIE Installer script for Ubuntu customized image
 #
 
-THDD=/dev/sda
+DELIM="__DATA__"
+COMPRESS="xz"
+THDD="/dev/sda"
 PNUM=3
 TDEV="$THDD$PNUM"
-TLABEL=NOS
+TLABEL="NOSU"
 TDIR=`mktemp -d`
-ONIE_CHECK=$(sgdisk /dev/sda -i 2 | grep 'ONIE-BOOT')
-PDEL=$(sgdisk -p /dev/sda | grep -oE '^[[:blank:]]+[[:digit:]]+' | awk '$1>2{print$1}')
+ONIE_CHECK="$(sgdisk /dev/sda -i 2 | grep 'ONIE-BOOT')"
+PDEL="$(sgdisk -p /dev/sda | grep -oE '^[[:blank:]]+[[:digit:]]+' | awk '$1>2{print$1}')"
 
 cleanup() {
     chroot "$TDIR" sh -c 'umount /proc; umount /sys; umount /dev/pts'
@@ -41,9 +43,8 @@ if [ ! -z "$PDEL" ]; then
 fi
 
 echo "I: Creating partition..."
-sgdisk $THDD -d 3
 partprobe $THDD
-sgdisk -N $PNUM -A $PNUM:set:2 -t $PNUM:8300 -c $PNUM:$TLABEL $THDD
+sgdisk -N $PNUM -A $PNUM:set:2 -t $PNUM:8300 -c $PNUM:"$TLABEL" $THDD
 [ $? -ne 0 ] && fail "Error creating partition! Exiting..." 
 
 partprobe $THDD
@@ -55,10 +56,15 @@ mke2fs -L $TLABEL $TDEV
 mount -t ext4 $TDEV $TDIR
 [ $? -ne 0 ] && fail "Error creating rootfs! Exiting..." 
 
+if [ "$COMPRESS" = "xz" ]; then
+    DECOMPRESS="xz -cd"
+else
+    DECOMPRESS="gzip -cd"
+fi
 
 echo "I: Extracting installer rootfs..."
-sed -re '1,/^__DATA__$/d' < "$0" \
-| xz -cd \
+sed -re '1,/^'"$DELIM"'$/d' < "$0" \
+| eval "$DECOMPRESS" \
 | tar -C "$TDIR" -x
 [ $? -ne 0 ] && fail "Error extracting rootfs! Exiting..." 
 
@@ -90,5 +96,3 @@ cleanup
 
 echo "I: Installation finished!"
 exit 0
-
-__DATA__

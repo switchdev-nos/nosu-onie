@@ -7,13 +7,13 @@
 #  Script to pack Linux OS rootfs tarball into ONIE installer
 #
 
+DELIM="__DATA__"
 INSTDIR=./installers
 DEFINST=ubuntu18xx-rootfs
-DATE=`date +%Y%m%d`
-ONIEIMG="onie-installer-x86_64-${DATE}.bin"
+
 
 usage() {
-        echo "Usage: $0 [-i installer] nosu-rootfs"
+        echo "Usage: $0 [-i installer] nosu-rootfs version"
         echo "  Supported installers:"
         for file in ./installers/*; do
             inst=`basename $file`
@@ -33,17 +33,22 @@ fail() {
 
 [ -d $INSTDIR ] || fail "Installers dir not found: $INSTDIR"
 
-if [ $# -lt 1 ]; then
+if [ $# -lt 2 ]; then
     usage
-elif [ $# -eq 1 ]; then
+elif [ $# -eq 2 ]; then
     INSTALLER=$DEFINST
     OSIMG=$1
-elif [ $# -eq 3 ] && [ "$1" = "-i"  ]; then
+    VERSION=$2
+elif [ $# -eq 4 ] && [ "$1" = "-i"  ]; then
     INSTALLER=$2
     OSIMG=$3
+    VERSION=$4
 else
     usage
 fi
+
+DATE=`date +%Y%m%d`
+ONIEIMG="nosu-$VERSION-mlnx-x86_64-${DATE}.bin"
 
 INSTPATH="$INSTDIR/$INSTALLER"
 [ -f $INSTPATH ] || fail "Unsupported installer: $INSTALLER"
@@ -53,5 +58,6 @@ echo "== Installer selected: $INSTALLER"
 echo "== Packing OS image: $OSIMG"
 cp -f $INSTPATH $ONIEIMG
 echo >> $ONIEIMG
+echo $DELIM >> $ONIEIMG
 cat "$OSIMG" >> $ONIEIMG
 echo "== ONIE installer is ready: $ONIEIMG (`du -sh $ONIEIMG | awk '{ print $1 }'`)"
