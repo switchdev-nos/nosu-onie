@@ -1,0 +1,103 @@
+#!/bin/sh
+#
+#  Copyright (C) 2019 Alexander Petrovskiy <alexpe@mellanox.com>
+#
+#  SPDX-License-Identifier: GPL-2.0
+#
+#  ONIE Installer script for Ubuntu customized image
+#
+
+CSUM="__CSUM__"
+CSUMCMD=sha256sum
+COMPRESS="xz"
+THDD="/dev/sda"
+PNUM=3
+TDEV="$THDD$PNUM"
+TLABEL="NOSU"
+TDIR=`mktemp -d`
+ONIE_CHECK="$(sgdisk /dev/sda -i 2 | grep 'ONIE-BOOT')"
+PDEL="$(sgdisk -p /dev/sda | grep -oE '^[[:blank:]]+[[:digit:]]+' | awk '$1>2{print$1}')"
+
+cleanup() {
+    chroot "$TDIR" sh -c 'umount /proc; umount /sys; umount /dev/pts'
+    sleep 1
+    umount $TDIR > /dev/null 2>&1
+    rm -rf $TDIR
+}
+
+fail() {
+    [ "$1" != "" ] && echo $1
+    exit 1
+}
+
+DATA="sed -e '1,/^__DATA__$/d' '$0'"
+[ $? -ne 0 ] && fail "Error reading image! Exiting..."
+test `eval $DATA | $CSUMCMD | cut -d " " -f 1` = $CSUM || fail "Checksum error! Exiting..."
+
+# Stop if ONIE is not installed on local disk
+[ -z "$ONIE_CHECK" ] && fail "E: No ONIE partition found on $THDD. Exiting..."
+
+echo "I: Starting installer..."
+
+if [ ! -z "$PDEL" ]; then 
+    echo "I: Deleting old partitions: "$PDEL
+    for part in $PDEL; do
+        sgdisk $THDD -d $part
+        sleep 1
+    done
+fi
+
+echo "I: Creating partition..."
+partprobe $THDD
+sgdisk -N $PNUM -A $PNUM:set:2 -t $PNUM:8300 -c $PNUM:"$TLABEL" $THDD
+[ $? -ne 0 ] && fail "Error creating partition! Exiting..." 
+
+partprobe $THDD
+
+echo "I: Creating filesystem..."
+mke2fs -t ext4 -m5 $TDEV
+mke2fs -L $TLABEL $TDEV
+
+mount -t ext4 $TDEV $TDIR
+[ $? -ne 0 ] && fail "Error creating rootfs! Exiting..." 
+
+if [ "$COMPRESS" = "xz" ]; then
+    DECOMPRESS="xz -cd"
+else
+    DECOMPRESS="gzip -cd"
+fi
+
+echo "I: Extracting installer rootfs..."
+sed -re '1,/^__DATA__$/d' < "$0" \
+| eval "$DECOMPRESS" \
+| tar -C "$TDIR" -x
+[ $? -ne 0 ] && fail "Error extracting rootfs! Exiting..." 
+
+cp -a /dev/sd* "$TDIR/dev/"
+
+# GET UBUNTU RELEASE INFORMATION
+echo "I: Checking Ubuntu Version..."
+. "$TDIR/etc/os-release"
+if [ "$VERSION_ID" = "18.04" ] || [ "$VERSION_ID" = "18.10" ]
+then
+        echo "I: Ubuntu $VERSION_ID is detected"
+else
+        fail "Unsupported Ubuntu version: $VERSION_ID"
+fi
+
+# RECONFIGURE OS
+echo "I: Reconfiguring OS..."
+
+# MOUNT VIRTUAL FS
+chroot "$TDIR" sh -c 'mount -t proc /proc /proc; mount -t sysfs /sys /sys; mount -t devpts devpts /dev/pts'
+
+# BOOTLOADER INSTALLATION
+echo "I: Installing GRUB2..."
+chroot "$TDIR" sh -c 'update-initramfs -u; grub-install /dev/sda; update-grub'
+
+#sync
+echo "I: Cleaning up..."
+cleanup
+
+echo "I: Installation finished!"
+exit 0

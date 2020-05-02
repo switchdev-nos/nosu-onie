@@ -10,7 +10,7 @@
 DELIM="__DATA__"
 CSUMCMD=sha256sum
 INSTDIR=./installers
-DEFINST=ubuntu18xx-rootfs
+DEFINST=ubuntu18xx
 
 
 usage() {
@@ -49,7 +49,7 @@ else
 fi
 
 DATE=`date +%Y%m%d`
-ONIEIMG="nosu-$VERSION-mlnx-x86_64-${DATE}.bin"
+ONIEIMG="nosu-$VERSION-$INSTALLER-x86_64-${DATE}.bin"
 
 INSTPATH="$INSTDIR/$INSTALLER"
 [ -f $INSTPATH ] || fail "Unsupported installer: $INSTALLER"
@@ -59,7 +59,6 @@ echo "== Installer selected: $INSTALLER"
 echo "== Packing OS image: $OSIMG"
 CSUM=$($CSUMCMD $OSIMG | cut -d ' ' -f 1)
 sed -u "{s/__CSUM__/$CSUM/g}" $INSTPATH > $ONIEIMG
-#cp -f $INSTPATH $ONIEIMG
 echo >> $ONIEIMG
 echo $DELIM >> $ONIEIMG
 cat "$OSIMG" >> $ONIEIMG
