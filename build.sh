@@ -63,5 +63,5 @@ sed -u "{s/__CSUM__/$CSUM/g}" $INSTPATH > $ONIEIMG
 echo >> $ONIEIMG
 echo $DELIM >> $ONIEIMG
 cat "$OSIMG" >> $ONIEIMG
-$CSUMCMD -b $OSIMG > $ONIECSUM
+$CSUMCMD -b $ONIEIMG > $ONIECSUM
 echo "== ONIE installer is ready: $ONIEIMG (`du -sh $ONIEIMG | awk '{ print $1 }'`)"
