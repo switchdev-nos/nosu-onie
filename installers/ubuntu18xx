@@ -32,7 +32,7 @@ fail() {
 
 DATA="sed -e '1,/^__DATA__$/d' '$0'"
 [ $? -ne 0 ] && fail "Error reading image! Exiting..."
-test `eval $DATA | $CSUMCMD | cut -d " " -f 1` = $CSUM || fail "Checksum error! Exiting..."
+test `eval $DATA | $CSUMCMD -b | cut -d " " -f 1` = $CSUM || fail "Checksum error! Exiting..."
 
 # Stop if ONIE is not installed on local disk
 [ -z "$ONIE_CHECK" ] && fail "E: No ONIE partition found on $THDD. Exiting..."

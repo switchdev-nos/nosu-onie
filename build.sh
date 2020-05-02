@@ -50,6 +50,7 @@ fi
 
 DATE=`date +%Y%m%d`
 ONIEIMG="nosu-$VERSION-$INSTALLER-x86_64-${DATE}.bin"
+ONIECSUM="nosu-$VERSION-$INSTALLER-x86_64-${DATE}.$CSUMCMD"
 
 INSTPATH="$INSTDIR/$INSTALLER"
 [ -f $INSTPATH ] || fail "Unsupported installer: $INSTALLER"
@@ -57,9 +58,10 @@ INSTPATH="$INSTDIR/$INSTALLER"
 
 echo "== Installer selected: $INSTALLER"
 echo "== Packing OS image: $OSIMG"
-CSUM=$($CSUMCMD $OSIMG | cut -d ' ' -f 1)
+CSUM=$($CSUMCMD -b $OSIMG | cut -d ' ' -f 1)
 sed -u "{s/__CSUM__/$CSUM/g}" $INSTPATH > $ONIEIMG
 echo >> $ONIEIMG
 echo $DELIM >> $ONIEIMG
 cat "$OSIMG" >> $ONIEIMG
+$CSUMCMD -b $OSIMG > $ONIECSUM
 echo "== ONIE installer is ready: $ONIEIMG (`du -sh $ONIEIMG | awk '{ print $1 }'`)"
