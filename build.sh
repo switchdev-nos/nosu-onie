@@ -8,6 +8,7 @@
 #
 
 DELIM="__DATA__"
+CSUMCMD=sha256sum
 INSTDIR=./installers
 DEFINST=ubuntu18xx-rootfs
 
@@ -56,7 +57,9 @@ INSTPATH="$INSTDIR/$INSTALLER"
 
 echo "== Installer selected: $INSTALLER"
 echo "== Packing OS image: $OSIMG"
-cp -f $INSTPATH $ONIEIMG
+CSUM=$($CSUMCMD $OSIMG | cut -d ' ' -f 1)
+sed -u "{s/__CSUM__/$CSUM/g}" $INSTPATH > $ONIEIMG
+#cp -f $INSTPATH $ONIEIMG
 echo >> $ONIEIMG
 echo $DELIM >> $ONIEIMG
 cat "$OSIMG" >> $ONIEIMG

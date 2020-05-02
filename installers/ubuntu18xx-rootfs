@@ -7,7 +7,8 @@
 #  ONIE Installer script for Ubuntu customized image
 #
 
-DELIM="__DATA__"
+CSUM="__CSUM__"
+CSUMCMD=sha256sum
 COMPRESS="xz"
 THDD="/dev/sda"
 PNUM=3
@@ -28,6 +29,10 @@ fail() {
     [ "$1" != "" ] && echo $1
     exit 1
 }
+
+DATA="sed -e '1,/^__DATA__$/d' '$0'"
+[ $? -ne 0 ] && fail "Error reading image! Exiting..."
+test `eval $DATA | $CSUMCMD | cut -d " " -f 1` = $CSUM || fail "Checksum error! Exiting..."
 
 # Stop if ONIE is not installed on local disk
 [ -z "$ONIE_CHECK" ] && fail "E: No ONIE partition found on $THDD. Exiting..."
@@ -63,7 +68,7 @@ else
 fi
 
 echo "I: Extracting installer rootfs..."
-sed -re '1,/^'"$DELIM"'$/d' < "$0" \
+sed -re '1,/^__DATA__$/d' < "$0" \
 | eval "$DECOMPRESS" \
 | tar -C "$TDIR" -x
 [ $? -ne 0 ] && fail "Error extracting rootfs! Exiting..." 
