@@ -50,16 +50,14 @@ fi
 echo "I: Creating partition..."
 partprobe $THDD
 sgdisk -N $PNUM -A $PNUM:set:2 -t $PNUM:8300 -c $PNUM:"$TLABEL" $THDD
-[ $? -ne 0 ] && fail "Error creating partition! Exiting..." 
-
+[ $? -ne 0 ] && fail "Error creating root partition! Exiting..." 
 partprobe $THDD
 
 echo "I: Creating filesystem..."
-mke2fs -t ext4 -m5 $TDEV
-mke2fs -L $TLABEL $TDEV
+mke2fs -t ext4 -m5 -L $TLABEL -j -F $TDEV
 
 mount -t ext4 $TDEV $TDIR
-[ $? -ne 0 ] && fail "Error creating rootfs! Exiting..." 
+[ $? -ne 0 ] && fail "Error mounting root partition! Exiting..." 
 
 if [ "$COMPRESS" = "xz" ]; then
     DECOMPRESS="xz -cd"
