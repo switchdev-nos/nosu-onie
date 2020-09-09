@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-#  Copyright (C) 2019 Alexander Petrovskiy <alexpe@mellanox.com>
+#  Copyright (C) 2019 Alexander Petrovskiy <alexpe@nvidia.com>
 #
 #  SPDX-License-Identifier: GPL-3.0
 #
