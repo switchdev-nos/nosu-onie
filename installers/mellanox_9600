@@ -17,7 +17,7 @@ TLABEL="NOSU"
 TDIR=`mktemp -d`
 ONIE_CHECK="$(sgdisk /dev/sda -i 2 | grep 'ONIE-BOOT')"
 PDEL="$(sgdisk -p /dev/sda | grep -oE '^[[:blank:]]+[[:digit:]]+' | awk '$1>2{print$1}')"
-CONSOLE_SPEED=115200
+CONSOLE_SPEED=9600
 ONIE_GRUB_CONF="/mnt/onie-boot/grub/grub.cfg"
 IMG_GRUB_CONF="$TDIR/etc/default/grub"
 
