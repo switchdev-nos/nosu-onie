@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-#  Copyright (C) 2019 Alexander Petrovskiy <alexpe@nvidia.com>
+#  Copyright (C) 2021 Alexander Petrovskiy <alexpe@nvidia.com>
 #
 #  SPDX-License-Identifier: GPL-2.0
 #
@@ -117,7 +117,7 @@ cp -a /dev/sd* "$TDIR/dev/"
 # GET UBUNTU RELEASE INFORMATION
 echo "I: Checking Ubuntu Version..."
 . "$TDIR/etc/os-release"
-if [ "$VERSION_ID" = "18.04" ] || [ "$VERSION_ID" = "18.10" ]
+if [ "$VERSION_ID" = "20.04" ]
 then
     echo "I: Ubuntu $VERSION_ID is detected"
 else

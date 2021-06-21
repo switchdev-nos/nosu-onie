@@ -10,7 +10,7 @@
 DELIM="__DATA__"
 CSUMCMD=sha256sum
 INSTDIR=./installers
-DEFINST=ubuntu18xx
+DEFINST=mellanox
 
 
 usage() {
